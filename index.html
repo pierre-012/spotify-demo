@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Artists Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<header class="header">
+    <div class="header-content">
+
+        <div>
+            <div class="logo">SPOTIFY TRACKER</div>
+            <h1>Artists Dashboard</h1>
+            <p>Artistes suivis et nouvelles sorties</p>
+        </div>
+
+        <div class="actions">
+            <div class="date-box">
+                <span>Aujourd'hui</span>
+                <strong id="current-date">--</strong>
+            </div>
+        </div>
+
+    </div>
+</header>
+
+
+<main>
+
+    <section id="page-releases" class="page active">
+
+        <div class="page-header">
+
+            <div>
+                <span class="section-label">AUJOURD'HUI</span>
+                <h2 id="release-title">Nouvelles sorties</h2>
+                <p id="release-description">Chargement...</p>
+            </div>
+
+            <div class="counter">
+                <strong id="release-count">0</strong>
+                <span>sorties</span>
+            </div>
+
+        </div>
+
+
+        <div class="search-container">
+            <input
+                type="search"
+                id="release-search"
+                placeholder="Rechercher une musique ou un artiste..."
+            >
+        </div>
+
+
+        <div id="release-list" class="release-grid">
+
+            <div class="loading">
+                Chargement des sorties...
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<footer>
+    <div>Spotify Artists Dashboard</div>
+    <div>Contact : Instagram : dcl.pierre</div>
+</footer>
+
+
+<script src="app.js"></script>
+
+</body>
+</html>
