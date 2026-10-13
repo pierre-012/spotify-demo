@@ -5,13 +5,11 @@ const RELEASES_FILE =
 
 let releases = [];
 
-
 /* =========================================================
    UTILITAIRES
    ========================================================= */
 
 const $ = id => document.getElementById(id);
-
 
 function escapeHTML(value) {
     return String(value ?? "")
@@ -22,12 +20,9 @@ function escapeHTML(value) {
         .replaceAll("'", "&#39;");
 }
 
-
 function normalizeText(value) {
-    return String(value ?? "")
-        .toLocaleLowerCase("fr-FR");
+    return String(value ?? "").toLocaleLowerCase("fr-FR");
 }
-
 
 function formatNumber(value) {
     return new Intl.NumberFormat("fr-FR").format(
@@ -35,13 +30,11 @@ function formatNumber(value) {
     );
 }
 
-
 /* =========================================================
    DATES
    ========================================================= */
 
 function getTodayParis() {
-
     const parts = new Intl.DateTimeFormat("en-CA", {
         timeZone: "Europe/Paris",
         year: "numeric",
@@ -60,26 +53,22 @@ function getTodayParis() {
     return `${result.year}-${result.month}-${result.day}`;
 }
 
-
 function normalizeDate(value) {
-
     if (!value) {
         return "";
     }
 
     const string = String(value).trim();
 
-    const iso = string.match(
-        /^(\d{4}-\d{2}-\d{2})/
-    );
+    // Format ISO : AAAA-MM-JJ
+    const iso = string.match(/^(\d{4}-\d{2}-\d{2})/);
 
     if (iso) {
         return iso[1];
     }
 
-    const french = string.match(
-        /^(\d{2})\/(\d{2})\/(\d{4})/
-    );
+    // Format français : JJ/MM/AAAA
+    const french = string.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
 
     if (french) {
         return `${french[3]}-${french[2]}-${french[1]}`;
@@ -88,32 +77,26 @@ function normalizeDate(value) {
     return "";
 }
 
-
 function formatDate(value) {
-
     const normalized = normalizeDate(value);
 
     if (!normalized) {
         return "—";
     }
 
-    const [year, month, day] =
-        normalized.split("-");
+    const [year, month, day] = normalized.split("-");
 
     return `${day}/${month}/${year}`;
 }
 
-
 function formatReadableDate(value) {
-
     const normalized = normalizeDate(value);
 
     if (!normalized) {
         return "Date inconnue";
     }
 
-    const [year, month, day] =
-        normalized.split("-");
+    const [year, month, day] = normalized.split("-");
 
     const date = new Date(
         Number(year),
@@ -122,35 +105,43 @@ function formatReadableDate(value) {
         12
     );
 
-    return date.toLocaleDateString(
-        "fr-FR",
-        {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric"
-        }
-    );
+    return date.toLocaleDateString("fr-FR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+    });
 }
 
+/*
+ * Aujourd'hui inclus, la période couvre 14 jours calendaires.
+ * Exemple : du 30 septembre au 13 octobre inclus.
+ */
+
+function getStartDate() {
+    const today = getTodayParis();
+    const date = new Date(`${today}T12:00:00`);
+
+    date.setDate(date.getDate() - 13);
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
 
 /* =========================================================
-   DONNÉES
+   CHARGEMENT DES DONNÉES
    ========================================================= */
 
 async function loadReleases() {
-
-    const response = await fetch(
-        RELEASES_FILE,
-        {
-            cache: "no-store"
-        }
-    );
+    const response = await fetch(RELEASES_FILE, {
+        cache: "no-store"
+    });
 
     if (!response.ok) {
-        throw new Error(
-            `Erreur HTTP ${response.status}`
-        );
+        throw new Error(`Erreur HTTP ${response.status}`);
     }
 
     const data = await response.json();
@@ -174,13 +165,11 @@ async function loadReleases() {
     return [];
 }
 
-
 /* =========================================================
    DONNÉES D'UNE SORTIE
    ========================================================= */
 
 function getReleaseDate(release) {
-
     return normalizeDate(
         release?.release_date ??
         release?.releaseDate ??
@@ -189,9 +178,7 @@ function getReleaseDate(release) {
     );
 }
 
-
 function getReleaseTitle(release) {
-
     return (
         release?.name ||
         release?.album_name ||
@@ -201,9 +188,7 @@ function getReleaseTitle(release) {
     );
 }
 
-
 function getReleaseArtist(release) {
-
     return (
         release?.artist_name ||
         release?.artistName ||
@@ -212,9 +197,7 @@ function getReleaseArtist(release) {
     );
 }
 
-
 function getReleaseImage(release) {
-
     return (
         release?.album_image ||
         release?.albumImage ||
@@ -223,9 +206,7 @@ function getReleaseImage(release) {
     );
 }
 
-
 function getReleaseURL(release) {
-
     return (
         release?.url ||
         release?.external_url ||
@@ -234,9 +215,7 @@ function getReleaseURL(release) {
     );
 }
 
-
 function getReleaseType(release) {
-
     return String(
         release?.release_type ||
         release?.releaseType ||
@@ -246,13 +225,11 @@ function getReleaseType(release) {
         .toLowerCase();
 }
 
-
 /* =========================================================
    RECHERCHE
    ========================================================= */
 
 function matchesSearch(release, search) {
-
     if (!search) {
         return true;
     }
@@ -266,42 +243,35 @@ function matchesSearch(release, search) {
         .filter(Boolean)
         .join(" ");
 
-    return normalizeText(text)
-        .includes(search);
+    return normalizeText(text).includes(search);
 }
-
 
 /* =========================================================
    INTERFACE
    ========================================================= */
 
 function displayCurrentDate() {
-
     const today = getTodayParis();
 
     if ($("current-date")) {
-        $("current-date").textContent =
-            formatDate(today);
+        $("current-date").textContent = formatDate(today);
     }
 
     if ($("release-title")) {
-        $("release-title").textContent =
-            `Nouvelles sorties — ${formatDate(today)}`;
+        $("release-title").textContent = "Dernières sorties";
     }
 
     if ($("release-description")) {
         $("release-description").textContent =
-            `Sorties prévues le ${formatReadableDate(today)}`;
+            "Les 10 sorties les plus récentes des 14 derniers jours";
     }
 }
 
-
 /* =========================================================
-   AFFICHAGE
+   AFFICHAGE DES SORTIES
    ========================================================= */
 
 function renderReleases() {
-
     const container = $("release-list");
 
     if (!container) {
@@ -313,68 +283,76 @@ function renderReleases() {
     );
 
     const today = getTodayParis();
+    const startDate = getStartDate();
 
+    /*
+     * 1. Conserver les sorties des 14 derniers jours.
+     * 2. Trier de la plus récente à la plus ancienne.
+     * 3. Limiter à 10 sorties.
+     */
 
-    const todayReleases = releases
+    const recentReleases = releases
         .filter(release => {
-            return getReleaseDate(release) === today;
-        })
-        .filter(release => {
-            return matchesSearch(
-                release,
-                search
+            const date = getReleaseDate(release);
+
+            return (
+                date !== "" &&
+                date >= startDate &&
+                date <= today
             );
         })
         .sort((a, b) => {
+            const dateA = getReleaseDate(a);
+            const dateB = getReleaseDate(b);
 
-            return getReleaseTitle(a)
-                .localeCompare(
-                    getReleaseTitle(b),
-                    "fr-FR",
-                    {
-                        sensitivity: "base"
-                    }
-                );
-        });
+            // Dates décroissantes : plus récent en premier
+            if (dateA !== dateB) {
+                return dateB.localeCompare(dateA);
+            }
 
+            // Même date : classement alphabétique
+            return getReleaseTitle(a).localeCompare(
+                getReleaseTitle(b),
+                "fr-FR",
+                { sensitivity: "base" }
+            );
+        })
+        .slice(0, 10);
 
+    /*
+     * La recherche s'applique aux 10 sorties sélectionnées.
+     */
+
+    const visibleReleases = recentReleases.filter(release =>
+        matchesSearch(release, search)
+    );
+
+    // Mise à jour du compteur
     if ($("release-count")) {
         $("release-count").textContent =
-            formatNumber(todayReleases.length);
+            formatNumber(visibleReleases.length);
     }
 
-
-    if (!todayReleases.length) {
-
+    // Aucune sortie disponible
+    if (!visibleReleases.length) {
         container.innerHTML = `
             <div class="empty">
-                Aucune sortie trouvée pour le
-                ${escapeHTML(formatDate(today))}.
+                Aucune sortie trouvée au cours des 14 derniers jours.
             </div>
         `;
 
         return;
     }
 
-
-    container.innerHTML = todayReleases
+    // Création des cartes de sortie
+    container.innerHTML = visibleReleases
         .map(release => {
-
-            const title =
-                getReleaseTitle(release);
-
-            const artist =
-                getReleaseArtist(release);
-
-            const image =
-                getReleaseImage(release);
-
-            const url =
-                getReleaseURL(release);
-
-            const type =
-                getReleaseType(release);
-
+            const title = getReleaseTitle(release);
+            const artist = getReleaseArtist(release);
+            const image = getReleaseImage(release);
+            const url = getReleaseURL(release);
+            const type = getReleaseType(release);
+            const releaseDate = getReleaseDate(release);
 
             return `
                 <article class="release-card">
@@ -399,13 +377,9 @@ function renderReleases() {
                     <div class="release-information">
 
                         <div class="release-type">
-                            ${
-                                escapeHTML(
-                                    type
-                                        ? type.toUpperCase()
-                                        : "SORTIE DU JOUR"
-                                )
-                            }
+                            ${escapeHTML(
+                                type ? type.toUpperCase() : "SORTIE"
+                            )}
                         </div>
 
                         <div class="release-name">
@@ -417,7 +391,7 @@ function renderReleases() {
                         </div>
 
                         <div class="release-album">
-                            ${escapeHTML(formatDate(today))}
+                            ${escapeHTML(formatDate(releaseDate))}
                         </div>
 
                         ${
@@ -443,15 +417,12 @@ function renderReleases() {
         .join("");
 }
 
-
 /* =========================================================
-   ERREUR
+   GESTION DES ERREURS
    ========================================================= */
 
 function showError(message) {
-
-    const container =
-        $("release-list");
+    const container = $("release-list");
 
     if (!container) {
         return;
@@ -469,17 +440,14 @@ function showError(message) {
     }
 }
 
-
 /* =========================================================
    INITIALISATION
    ========================================================= */
 
 async function initialize() {
-
     displayCurrentDate();
 
     try {
-
         releases = await loadReleases();
 
         console.log(
@@ -489,35 +457,30 @@ async function initialize() {
         renderReleases();
 
     } catch (error) {
-
         console.error(
             "Erreur lors du chargement :",
             error
         );
 
-        showError(error.message);
+        showError(
+            error.message || "Une erreur inconnue est survenue."
+        );
     }
 }
 
-
 /* =========================================================
-   RECHERCHE
+   RECHERCHE ET DÉMARRAGE
    ========================================================= */
 
-document.addEventListener(
-    "DOMContentLoaded",
-    () => {
+document.addEventListener("DOMContentLoaded", () => {
+    const searchInput = $("release-search");
 
-        const searchInput =
-            $("release-search");
-
-        if (searchInput) {
-            searchInput.addEventListener(
-                "input",
-                renderReleases
-            );
-        }
-
-        initialize();
+    if (searchInput) {
+        searchInput.addEventListener(
+            "input",
+            renderReleases
+        );
     }
-);
+
+    initialize();
+});
