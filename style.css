@@ -516,3 +516,274 @@ ACCESSIBILITÉ
 ```
 
 }
+/* =========================================================
+BANNIÈRE DÉMO / PREMIUM
+========================================================= */
+
+.premium-banner {
+max-width: 1400px;
+margin: 0 auto;
+padding: 0 30px;
+}
+
+.premium-content {
+position: relative;
+overflow: hidden;
+padding: 30px;
+background: linear-gradient(
+135deg,
+#11151a 0%,
+#17251c 55%,
+#102719 100%
+);
+border: 1px solid rgba(30, 215, 96, 0.25);
+border-radius: 18px;
+color: var(--text);
+box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
+}
+
+.premium-content::before {
+content: "";
+position: absolute;
+top: -100px;
+right: -70px;
+width: 250px;
+height: 250px;
+background: rgba(30, 215, 96, 0.07);
+border-radius: 50%;
+filter: blur(15px);
+pointer-events: none;
+}
+
+.premium-content > * {
+position: relative;
+z-index: 1;
+}
+
+/* Badge démo */
+
+.premium-badge {
+display: inline-block;
+padding: 7px 12px;
+margin-bottom: 14px;
+background: rgba(255, 193, 7, 0.10);
+border: 1px solid rgba(255, 193, 7, 0.30);
+border-radius: 30px;
+color: #ffd666;
+font-size: 11px;
+font-weight: 800;
+letter-spacing: 1px;
+}
+
+/* Titre et introduction */
+
+.premium-content > h2 {
+margin: 0 0 10px;
+color: var(--text);
+font-size: clamp(23px, 3vw, 30px);
+letter-spacing: -0.7px;
+line-height: 1.3;
+}
+
+.premium-intro {
+max-width: 750px;
+margin: 0;
+color: var(--text-secondary);
+font-size: 14px;
+line-height: 1.7;
+}
+
+/* Avantages et limitations */
+
+.premium-features {
+display: grid;
+grid-template-columns: repeat(3, minmax(0, 1fr));
+gap: 15px;
+margin: 25px 0;
+}
+
+.premium-feature {
+display: flex;
+align-items: flex-start;
+gap: 12px;
+padding: 18px;
+background: rgba(255, 255, 255, 0.035);
+border: 1px solid var(--border);
+border-radius: 12px;
+transition: border-color 0.2s ease,
+background 0.2s ease;
+}
+
+.premium-feature:hover {
+background: rgba(255, 255, 255, 0.055);
+border-color: rgba(30, 215, 96, 0.3);
+}
+
+.feature-icon {
+flex-shrink: 0;
+font-size: 23px;
+line-height: 1.3;
+}
+
+.premium-feature strong {
+display: block;
+margin-bottom: 7px;
+color: var(--text);
+font-size: 13px;
+line-height: 1.5;
+}
+
+.premium-feature p {
+margin: 0;
+color: var(--text-secondary);
+font-size: 12px;
+line-height: 1.7;
+}
+
+/* Encadré Premium */
+
+.premium-upgrade {
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 25px;
+padding: 23px;
+background: rgba(30, 215, 96, 0.07);
+border: 1px solid rgba(30, 215, 96, 0.22);
+border-radius: 14px;
+}
+
+.premium-tag {
+display: inline-block;
+margin-bottom: 8px;
+color: var(--spotify);
+font-size: 11px;
+font-weight: 800;
+letter-spacing: 1.5px;
+}
+
+.premium-upgrade-text h3 {
+margin: 0 0 8px;
+color: var(--text);
+font-size: 19px;
+letter-spacing: -0.3px;
+}
+
+.premium-upgrade-text p {
+max-width: 650px;
+margin: 0;
+color: var(--text-secondary);
+font-size: 13px;
+line-height: 1.7;
+}
+
+/* Bouton Premium */
+
+.premium-button {
+display: inline-flex;
+flex-shrink: 0;
+align-items: center;
+justify-content: center;
+gap: 12px;
+padding: 13px 21px;
+background: var(--spotify);
+border: 1px solid var(--spotify);
+border-radius: 30px;
+color: #071108;
+text-decoration: none;
+font-size: 13px;
+font-weight: 800;
+transition: background 0.2s ease,
+transform 0.2s ease,
+box-shadow 0.2s ease;
+}
+
+.premium-button:hover {
+background: var(--spotify-hover);
+transform: translateY(-2px);
+box-shadow: 0 5px 20px rgba(30, 215, 96, 0.15);
+}
+
+.premium-button span {
+font-size: 18px;
+line-height: 1;
+}
+
+/* =========================================================
+RESPONSIVE — TABLETTES
+========================================================= */
+
+@media (max-width: 900px) {
+.premium-features {
+grid-template-columns: 1fr;
+gap: 10px;
+}
+
+```
+.premium-feature {
+    padding: 15px;
+}
+
+.premium-upgrade {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 18px;
+}
+```
+
+}
+
+/* =========================================================
+RESPONSIVE — MOBILES
+========================================================= */
+
+@media (max-width: 700px) {
+.premium-banner {
+padding: 0 20px;
+}
+
+```
+.premium-content {
+    padding: 22px 18px;
+    border-radius: 15px;
+}
+
+.premium-content > h2 {
+    font-size: 23px;
+}
+
+.premium-intro {
+    font-size: 13px;
+}
+
+.premium-features {
+    margin: 20px 0;
+}
+
+.premium-upgrade {
+    padding: 18px;
+}
+
+.premium-upgrade-text h3 {
+    font-size: 17px;
+}
+
+.premium-button {
+    width: 100%;
+    box-sizing: border-box;
+}
+```
+
+}
+
+/* =========================================================
+ACCESSIBILITÉ — ANIMATIONS
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+.premium-feature,
+.premium-button {
+transition: none;
+}
+}
+
