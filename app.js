@@ -54,7 +54,7 @@ month: "2-digit",
 day: "2-digit"
 }).formatToParts(new Date());
 
-```
+
 const result = {};
 
 for (const part of parts) {
@@ -64,7 +64,7 @@ for (const part of parts) {
 }
 
 return `${result.year}-${result.month}-${result.day}`;
-```
+
 
 }
 
@@ -73,7 +73,7 @@ if (value === null || value === undefined || value === "") {
 return "";
 }
 
-```
+
 const string = String(value).trim();
 
 let match = string.match(
@@ -121,7 +121,7 @@ if (match) {
 }
 
 return "";
-```
+
 
 }
 
@@ -129,7 +129,7 @@ function getReleaseCutoffDate() {
 const today = getTodayParis();
 const parts = today.split("-").map(Number);
 
-```
+
 const date = new Date(
     parts[0],
     parts[1] - 1,
@@ -144,14 +144,14 @@ const month = String(date.getMonth() + 1).padStart(2, "0");
 const day = String(date.getDate()).padStart(2, "0");
 
 return `${year}-${month}-${day}`;
-```
+
 
 }
 
 function formatDate(value) {
 const normalized = normalizeDate(value);
 
-```
+
 if (!normalized) {
     return "—";
 }
@@ -159,14 +159,14 @@ if (!normalized) {
 const [year, month, day] = normalized.split("-");
 
 return `${day}/${month}/${year}`;
-```
+
 
 }
 
 function formatReadableDate(value) {
 const normalized = normalizeDate(value);
 
-```
+
 if (!normalized) {
     return "Date inconnue";
 }
@@ -186,7 +186,7 @@ return date.toLocaleDateString("fr-FR", {
     month: "long",
     year: "numeric"
 });
-```
+
 
 }
 
@@ -197,7 +197,7 @@ CHARGEMENT DU JSON
 async function loadReleases() {
 const controller = new AbortController();
 
-```
+
 const timeout = setTimeout(() => {
     controller.abort();
 }, REQUEST_TIMEOUT);
@@ -259,7 +259,7 @@ try {
 } finally {
     clearTimeout(timeout);
 }
-```
+
 
 }
 
@@ -295,7 +295,7 @@ release?.artist ??
 release?.artists ??
 "Artiste inconnu";
 
-```
+
 if (Array.isArray(artist)) {
     return artist
         .map(item => {
@@ -314,7 +314,7 @@ if (artist && typeof artist === "object") {
 }
 
 return String(artist);
-```
+
 
 }
 
@@ -327,9 +327,9 @@ release?.cover ??
 release?.images?.[0]?.url ??
 "";
 
-```
+
 return typeof image === "string" ? image : "";
-```
+
 
 }
 
@@ -361,7 +361,7 @@ if (!value) {
 return false;
 }
 
-```
+
 try {
     const url = new URL(value, window.location.href);
 
@@ -372,7 +372,7 @@ try {
 } catch {
     return false;
 }
-```
+
 
 }
 
@@ -385,7 +385,7 @@ if (!search) {
 return true;
 }
 
-```
+
 const text = [
     getReleaseTitle(release),
     getReleaseArtist(release),
@@ -396,7 +396,7 @@ const text = [
     .join(" ");
 
 return normalizeText(text).includes(search);
-```
+
 
 }
 
@@ -408,7 +408,7 @@ function displayCurrentDate() {
 const today = getTodayParis();
 const cutoffDate = getReleaseCutoffDate();
 
-```
+
 if ($("current-date")) {
     $("current-date").textContent = formatDate(today);
 }
@@ -421,7 +421,7 @@ if ($("release-description")) {
     $("release-description").textContent =
         `Jusqu'à ${MAX_RELEASES} sorties, avec ${RELEASE_DELAY_DAYS} jours de retard (jusqu'au ${formatDate(cutoffDate)}).`;
 }
-```
+
 
 }
 
@@ -437,7 +437,7 @@ const url = getReleaseURL(release);
 const type = getReleaseType(release);
 const releaseDate = getReleaseDate(release);
 
-```
+
 let coverHTML;
 
 if (isSafeURL(image)) {
@@ -504,7 +504,7 @@ return `
 
     </article>
 `;
-```
+
 
 }
 
@@ -515,7 +515,7 @@ AFFICHAGE DES SORTIES
 function renderReleases() {
 const container = $("release-list");
 
-```
+
 if (!container) {
     console.error(
         "Élément HTML #release-list introuvable."
@@ -584,7 +584,7 @@ if (visibleReleases.length === 0) {
 container.innerHTML = visibleReleases
     .map(createReleaseCard)
     .join("");
-```
+
 
 }
 
@@ -595,7 +595,7 @@ AFFICHAGE DES ERREURS
 function showError(message) {
 const container = $("release-list");
 
-```
+
 if (container) {
     container.innerHTML = `
         <div class="empty">
@@ -620,7 +620,7 @@ if (container) {
 if ($("release-count")) {
     $("release-count").textContent = "0";
 }
-```
+
 
 }
 
@@ -631,7 +631,7 @@ INITIALISATION
 async function initialize() {
 const container = $("release-list");
 
-```
+
 if (container) {
     container.innerHTML = `
         <div class="loading">
@@ -679,7 +679,7 @@ try {
         "Une erreur inconnue est survenue."
     );
 }
-```
+
 
 }
 
@@ -690,7 +690,7 @@ DÉMARRAGE
 document.addEventListener("DOMContentLoaded", () => {
 console.log("Spotify Tracker : JavaScript chargé.");
 
-```
+
 const searchInput = $("release-search");
 
 if (searchInput) {
@@ -701,6 +701,6 @@ if (searchInput) {
 }
 
 initialize();
-```
+
 
 });
