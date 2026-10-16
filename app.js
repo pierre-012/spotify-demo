@@ -1,6 +1,5 @@
 "use strict";
 
-console.log("✅ APP.JS EST BIEN EXÉCUTÉ");
 /* =========================================================
 CONFIGURATION
 ========================================================= */
@@ -10,6 +9,7 @@ const RELEASES_FILE =
 
 const MAX_RELEASES = 10;
 const RELEASE_DELAY_DAYS = 14;
+const REQUEST_TIMEOUT = 10000;
 
 let releases = [];
 
@@ -19,293 +19,252 @@ UTILITAIRES
 
 const $ = id => document.getElementById(id);
 
-/**
+function escapeHTML(value) {
+return String(value ?? "")
+.replace(/&/g, "&")
+.replace(/</g, "<")
+.replace(/>/g, ">")
+.replace(/"/g, """)
+.replace(/'/g, "'");
+}
 
-* Échappe les caractères HTML pour éviter l'injection de code.
-  */
-  function escapeHTML(value) {
-  return String(value ?? "")
-  .replaceAll("&", "&")
-  .replaceAll("<", "<")
-  .replaceAll(">", ">")
-  .replaceAll('"', """)
-  .replaceAll("'", "'");
-  }
+function normalizeText(value) {
+return String(value ?? "")
+.toLocaleLowerCase("fr-FR")
+.normalize("NFD")
+.replace(/[\u0300-\u036f]/g, "")
+.trim();
+}
 
-/**
-
-* Normalise le texte pour rendre la recherche insensible
-* aux accents et à la casse.
-  */
-  function normalizeText(value) {
-  return String(value ?? "")
-  .toLocaleLowerCase("fr-FR")
-  .normalize("NFD")
-  .replace(/[\u0300-\u036f]/g, "")
-  .trim();
-  }
-
-/**
-
-* Formate un nombre selon les conventions françaises.
-  */
-  function formatNumber(value) {
-  return new Intl.NumberFormat("fr-FR").format(
-  Number(value) || 0
-  );
-  }
-
-/**
-
-* Convertit une date en nombre de millisecondes,
-* en utilisant midi pour éviter les problèmes de fuseau.
-  */
-  function parseLocalDate(value) {
-  const normalized = normalizeDate(value);
-
-  if (!normalized) {
-  return null;
-  }
-
-  const match = normalized.match(
-  /^(\d{4})-(\d{2})-(\d{2})$/
-  );
-
-  if (!match) {
-  return null;
-  }
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-
-  const date = new Date(year, month - 1, day, 12, 0, 0);
-
-  // Vérifie que la date existe réellement.
-  if (
-  date.getFullYear() !== year ||
-  date.getMonth() !== month - 1 ||
-  date.getDate() !== day
-  ) {
-  return null;
-  }
-
-  return date;
-  }
+function formatNumber(value) {
+return new Intl.NumberFormat("fr-FR").format(
+Number(value) || 0
+);
+}
 
 /* =========================================================
-GESTION DES DATES
+DATES
 ========================================================= */
 
-/**
+function getTodayParis() {
+const parts = new Intl.DateTimeFormat("en-CA", {
+timeZone: "Europe/Paris",
+year: "numeric",
+month: "2-digit",
+day: "2-digit"
+}).formatToParts(new Date());
 
-* Retourne la date actuelle à Paris au format AAAA-MM-JJ.
-  */
-  function getTodayParis() {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "Europe/Paris",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit"
-  }).formatToParts(new Date());
+```
+const result = {};
 
-  const result = {};
+for (const part of parts) {
+    if (part.type !== "literal") {
+        result[part.type] = part.value;
+    }
+}
 
-  for (const part of parts) {
-  if (part.type !== "literal") {
-  result[part.type] = part.value;
-  }
-  }
+return `${result.year}-${result.month}-${result.day}`;
+```
 
-  return `${result.year}-${result.month}-${result.day}`;
-  }
+}
 
-/**
+function normalizeDate(value) {
+if (value === null || value === undefined || value === "") {
+return "";
+}
 
-* Calcule la date limite d'affichage.
-*
-* Exemple :
-* Aujourd'hui : 2026-10-16
-* Date limite : 2026-10-02
-  */
-  function getReleaseCutoffDate() {
-  const date = parseLocalDate(getTodayParis());
+```
+const string = String(value).trim();
 
-  if (!date) {
-  throw new Error("Impossible de calculer la date actuelle.");
-  }
+let match = string.match(
+    /^(\d{4})-(\d{2})-(\d{2})(?:$|T|\s)/
+);
 
-  date.setDate(date.getDate() - RELEASE_DELAY_DAYS);
+if (match) {
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
 
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+    const date = new Date(year, month - 1, day, 12);
 
-  return `${year}-${month}-${day}`;
-  }
-
-/**
-
-* Normalise les dates provenant du JSON.
-*
-* Formats acceptés :
-* * AAAA-MM-JJ
-* * AAAA-MM-JJTHH:mm:ss
-* * AAAA-MM-JJ HH:mm:ss
-* * JJ/MM/AAAA
-* * JJ-MM-AAAA
-    */
-    function normalizeDate(value) {
-    if (value === null || value === undefined || value === "") {
-    return "";
+    if (
+        date.getFullYear() !== year ||
+        date.getMonth() !== month - 1 ||
+        date.getDate() !== day
+    ) {
+        return "";
     }
 
-  const string = String(value).trim();
+    return `${match[1]}-${match[2]}-${match[3]}`;
+}
 
-  // Format ISO : 2026-09-25 ou 2026-09-25T10:30:00Z.
-  const iso = string.match(
-  /^(\d{4}-\d{2}-\d{2})(?:$|T|\s)/
-  );
+match = string.match(
+    /^(\d{2})\/(\d{2})\/(\d{4})$/
+);
 
-  if (iso) {
-  return parseLocalDateWithoutRecursion(iso[1]);
-  }
+if (match) {
+    const day = Number(match[1]);
+    const month = Number(match[2]);
+    const year = Number(match[3]);
 
-  // Format français : 25/09/2026 ou 25-09-2026.
-  const french = string.match(
-  /^(\d{2})[/-](\d{2})[/-](\d{4})$/
-  );
+    const date = new Date(year, month - 1, day, 12);
 
-  if (french) {
-  const normalized =
-  `${french[3]}-${french[2]}-${french[1]}`;
+    if (
+        date.getFullYear() !== year ||
+        date.getMonth() !== month - 1 ||
+        date.getDate() !== day
+    ) {
+        return "";
+    }
 
-  ```
-   return parseLocalDateWithoutRecursion(normalized);
-  ```
+    return `${match[3]}-${match[2]}-${match[1]}`;
+}
 
-  }
+return "";
+```
 
-  return "";
-  }
+}
 
-/**
+function getReleaseCutoffDate() {
+const today = getTodayParis();
+const parts = today.split("-").map(Number);
 
-* Vérifie une date ISO sans rappeler normalizeDate().
-  */
-  function parseLocalDateWithoutRecursion(value) {
-  const match = String(value).match(
-  /^(\d{4})-(\d{2})-(\d{2})$/
-  );
+```
+const date = new Date(
+    parts[0],
+    parts[1] - 1,
+    parts[2],
+    12
+);
 
-  if (!match) {
-  return "";
-  }
+date.setDate(date.getDate() - RELEASE_DELAY_DAYS);
 
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
+const year = date.getFullYear();
+const month = String(date.getMonth() + 1).padStart(2, "0");
+const day = String(date.getDate()).padStart(2, "0");
 
-  const date = new Date(year, month - 1, day, 12, 0, 0);
+return `${year}-${month}-${day}`;
+```
 
-  if (
-  date.getFullYear() !== year ||
-  date.getMonth() !== month - 1 ||
-  date.getDate() !== day
-  ) {
-  return "";
-  }
+}
 
-  return value;
-  }
+function formatDate(value) {
+const normalized = normalizeDate(value);
 
-/**
+```
+if (!normalized) {
+    return "—";
+}
 
-* Formate une date au format JJ/MM/AAAA.
-  */
-  function formatDate(value) {
-  const normalized = normalizeDate(value);
+const [year, month, day] = normalized.split("-");
 
-  if (!normalized) {
-  return "—";
-  }
+return `${day}/${month}/${year}`;
+```
 
-  const [year, month, day] = normalized.split("-");
+}
 
-  return `${day}/${month}/${year}`;
-  }
+function formatReadableDate(value) {
+const normalized = normalizeDate(value);
 
-/**
+```
+if (!normalized) {
+    return "Date inconnue";
+}
 
-* Formate une date en français lisible.
-  */
-  function formatReadableDate(value) {
-  const date = parseLocalDate(value);
+const [year, month, day] = normalized.split("-");
 
-  if (!date) {
-  return "Date inconnue";
-  }
+const date = new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    12
+);
 
-  return date.toLocaleDateString("fr-FR", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  year: "numeric"
-  });
-  }
+return date.toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+});
+```
+
+}
 
 /* =========================================================
-CHARGEMENT DES DONNÉES
+CHARGEMENT DU JSON
 ========================================================= */
 
-/**
+async function loadReleases() {
+const controller = new AbortController();
 
-* Charge les sorties depuis le fichier JSON.
-  */
-  async function loadReleases() {
-  const response = await fetch(RELEASES_FILE, {
-  cache: "no-store"
-  });
+```
+const timeout = setTimeout(() => {
+    controller.abort();
+}, REQUEST_TIMEOUT);
 
-  if (!response.ok) {
-  throw new Error(
-  `Impossible de récupérer les données (HTTP ${response.status}).`
-  );
-  }
+try {
+    const response = await fetch(RELEASES_FILE, {
+        cache: "no-store",
+        signal: controller.signal
+    });
 
-  let data;
+    if (!response.ok) {
+        throw new Error(
+            `Erreur HTTP ${response.status} lors du chargement du fichier JSON.`
+        );
+    }
 
-  try {
-  data = await response.json();
-  } catch {
-  throw new Error(
-  "Le fichier sorties.json ne contient pas un JSON valide."
-  );
-  }
+    let data;
 
-  let items = [];
+    try {
+        data = await response.json();
+    } catch {
+        throw new Error(
+            "Le fichier sorties.json ne contient pas un JSON valide."
+        );
+    }
 
-  if (Array.isArray(data)) {
-  items = data;
-  } else if (data && typeof data === "object") {
-  if (Array.isArray(data.tracks)) {
-  items = data.tracks;
-  } else if (Array.isArray(data.releases)) {
-  items = data.releases;
-  } else if (Array.isArray(data.albums)) {
-  items = data.albums;
-  } else if (Array.isArray(data.items)) {
-  items = data.items;
-  }
-  }
+    if (Array.isArray(data)) {
+        return data.filter(Boolean);
+    }
 
-  return items.filter(
-  item => item && typeof item === "object"
-  );
-  }
+    if (data && typeof data === "object") {
+        const possibleLists = [
+            data.tracks,
+            data.releases,
+            data.albums,
+            data.items
+        ];
+
+        for (const list of possibleLists) {
+            if (Array.isArray(list)) {
+                return list.filter(Boolean);
+            }
+        }
+    }
+
+    throw new Error(
+        "Structure JSON non reconnue : aucune liste de sorties trouvée."
+    );
+
+} catch (error) {
+    if (error.name === "AbortError") {
+        throw new Error(
+            "Le chargement du fichier JSON a dépassé 10 secondes."
+        );
+    }
+
+    throw error;
+
+} finally {
+    clearTimeout(timeout);
+}
+```
+
+}
 
 /* =========================================================
-INFORMATIONS D'UNE SORTIE
+INFORMATIONS DES SORTIES
 ========================================================= */
 
 function getReleaseDate(release) {
@@ -329,13 +288,12 @@ release?.title ||
 }
 
 function getReleaseArtist(release) {
-const artist = (
+const artist =
 release?.artist_name ??
 release?.artistName ??
 release?.artist ??
 release?.artists ??
-"Artiste inconnu"
-);
+"Artiste inconnu";
 
 ```
 if (Array.isArray(artist)) {
@@ -395,29 +353,28 @@ release?.type ??
 }
 
 /* =========================================================
-VALIDATION DES LIENS
+VALIDATION DES URL
 ========================================================= */
 
-/**
+function isSafeURL(value) {
+if (!value) {
+return false;
+}
 
-* N'autorise que les URL HTTP et HTTPS.
-  */
-  function isSafeURL(value) {
-  if (!value) {
-  return false;
-  }
+```
+try {
+    const url = new URL(value, window.location.href);
 
-  try {
-  const url = new URL(value, window.location.href);
+    return (
+        url.protocol === "https:" ||
+        url.protocol === "http:"
+    );
+} catch {
+    return false;
+}
+```
 
-  ```
-   return url.protocol === "https:" || url.protocol === "http:";
-  ```
-
-  } catch {
-  return false;
-  }
-  }
+}
 
 /* =========================================================
 RECHERCHE
@@ -444,7 +401,7 @@ return normalizeText(text).includes(search);
 }
 
 /* =========================================================
-AFFICHAGE DE LA DATE
+INFORMATIONS DE LA PAGE
 ========================================================= */
 
 function displayCurrentDate() {
@@ -452,20 +409,16 @@ const today = getTodayParis();
 const cutoffDate = getReleaseCutoffDate();
 
 ```
-const currentDate = $("current-date");
-const releaseTitle = $("release-title");
-const releaseDescription = $("release-description");
-
-if (currentDate) {
-    currentDate.textContent = formatDate(today);
+if ($("current-date")) {
+    $("current-date").textContent = formatDate(today);
 }
 
-if (releaseTitle) {
-    releaseTitle.textContent = "Dernières sorties";
+if ($("release-title")) {
+    $("release-title").textContent = "Dernières sorties";
 }
 
-if (releaseDescription) {
-    releaseDescription.textContent =
+if ($("release-description")) {
+    $("release-description").textContent =
         `Jusqu'à ${MAX_RELEASES} sorties, avec ${RELEASE_DELAY_DAYS} jours de retard (jusqu'au ${formatDate(cutoffDate)}).`;
 }
 ```
@@ -485,32 +438,32 @@ const type = getReleaseType(release);
 const releaseDate = getReleaseDate(release);
 
 ```
-const safeTitle = escapeHTML(title);
-const safeArtist = escapeHTML(artist);
+let coverHTML;
 
-const cover = isSafeURL(image)
-    ? `
+if (isSafeURL(image)) {
+    coverHTML = `
         <img
             class="release-cover"
             src="${escapeHTML(image)}"
-            alt="Pochette de ${safeTitle}"
+            alt="Pochette de ${escapeHTML(title)}"
             loading="lazy"
             onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
         >
         <div
             class="release-cover release-cover-empty"
             style="display:none"
-            aria-hidden="true"
         >♪</div>
-    `
-    : `
-        <div class="release-cover release-cover-empty" aria-hidden="true">
-            ♪
-        </div>
     `;
+} else {
+    coverHTML = `
+        <div class="release-cover release-cover-empty">♪</div>
+    `;
+}
 
-const spotifyButton = isSafeURL(url)
-    ? `
+let buttonHTML = "";
+
+if (isSafeURL(url)) {
+    buttonHTML = `
         <a
             class="spotify-button"
             href="${escapeHTML(url)}"
@@ -519,13 +472,13 @@ const spotifyButton = isSafeURL(url)
         >
             Écouter sur Spotify
         </a>
-    `
-    : "";
+    `;
+}
 
 return `
     <article class="release-card">
 
-        ${cover}
+        ${coverHTML}
 
         <div class="release-information">
 
@@ -534,18 +487,18 @@ return `
             </div>
 
             <div class="release-name">
-                ${safeTitle}
+                ${escapeHTML(title)}
             </div>
 
             <div class="release-artist">
-                ${safeArtist}
+                ${escapeHTML(artist)}
             </div>
 
             <div class="release-album">
                 ${escapeHTML(formatDate(releaseDate))}
             </div>
 
-            ${spotifyButton}
+            ${buttonHTML}
 
         </div>
 
@@ -556,7 +509,7 @@ return `
 }
 
 /* =========================================================
-FILTRAGE ET AFFICHAGE DES SORTIES
+AFFICHAGE DES SORTIES
 ========================================================= */
 
 function renderReleases() {
@@ -565,7 +518,7 @@ const container = $("release-list");
 ```
 if (!container) {
     console.error(
-        "Élément #release-list introuvable dans le HTML."
+        "Élément HTML #release-list introuvable."
     );
     return;
 }
@@ -577,10 +530,6 @@ const search = normalizeText(
 const today = getTodayParis();
 const cutoffDate = getReleaseCutoffDate();
 
-/*
- * 1. Garder les sorties dont la date est valide,
- * passée et antérieure à la date limite.
- */
 const eligibleReleases = releases
     .filter(release => {
         const date = getReleaseDate(release);
@@ -591,10 +540,6 @@ const eligibleReleases = releases
             date <= today
         );
     })
-
-    /*
-     * 2. Trier de la plus récente à la plus ancienne.
-     */
     .sort((a, b) => {
         const dateA = getReleaseDate(a);
         const dateB = getReleaseDate(b);
@@ -609,37 +554,22 @@ const eligibleReleases = releases
             { sensitivity: "base" }
         );
     })
-
-    /*
-     * 3. Limiter à 10 sorties.
-     */
     .slice(0, MAX_RELEASES);
 
-/*
- * 4. Appliquer la recherche aux 10 sorties retenues.
- */
-const visibleReleases = eligibleReleases.filter(release =>
-    matchesSearch(release, search)
+const visibleReleases = eligibleReleases.filter(
+    release => matchesSearch(release, search)
 );
 
-/*
- * 5. Mettre à jour le compteur.
- */
-const counter = $("release-count");
-
-if (counter) {
-    counter.textContent = formatNumber(
+if ($("release-count")) {
+    $("release-count").textContent = formatNumber(
         visibleReleases.length
     );
 }
 
-/*
- * 6. Afficher un message si aucune sortie ne correspond.
- */
 if (visibleReleases.length === 0) {
     const message = search
-        ? `Aucune sortie ne correspond à « ${escapeHTML(search)} ».`
-        : `Aucune sortie n'est disponible avant le ${escapeHTML(formatDate(cutoffDate))}.`;
+        ? `Aucune sortie ne correspond à votre recherche : ${escapeHTML(search)}.`
+        : `Aucune sortie n'a atteint la date limite du ${escapeHTML(formatDate(cutoffDate))}.`;
 
     container.innerHTML = `
         <div class="empty">
@@ -651,9 +581,6 @@ if (visibleReleases.length === 0) {
     return;
 }
 
-/*
- * 7. Générer les cartes.
- */
 container.innerHTML = visibleReleases
     .map(createReleaseCard)
     .join("");
@@ -662,7 +589,7 @@ container.innerHTML = visibleReleases
 }
 
 /* =========================================================
-GESTION DES ERREURS
+AFFICHAGE DES ERREURS
 ========================================================= */
 
 function showError(message) {
@@ -684,16 +611,15 @@ if (container) {
         </div>
     `;
 
-    $("retry-loading")?.addEventListener("click", initialize);
+    $("retry-loading")?.addEventListener(
+        "click",
+        initialize
+    );
 }
 
-const counter = $("release-count");
-
-if (counter) {
-    counter.textContent = "0";
+if ($("release-count")) {
+    $("release-count").textContent = "0";
 }
-
-console.error("Chargement des sorties impossible :", message);
 ```
 
 }
@@ -717,24 +643,26 @@ if (container) {
 try {
     displayCurrentDate();
 
+    console.log("Chargement du fichier JSON :", RELEASES_FILE);
+
     releases = await loadReleases();
 
-    console.info(
-        `${releases.length} sortie(s) chargée(s) depuis le JSON.`
+    console.log(
+        `${releases.length} sortie(s) chargée(s).`
     );
 
-    console.info(
+    console.log(
         "Date actuelle à Paris :",
         getTodayParis()
     );
 
-    console.info(
-        "Date limite des sorties :",
+    console.log(
+        "Date limite :",
         getReleaseCutoffDate()
     );
 
-    console.info(
-        "Nombre de sorties avec une date valide :",
+    console.log(
+        "Sorties avec date valide :",
         releases.filter(release => getReleaseDate(release)).length
     );
 
@@ -742,7 +670,7 @@ try {
 
 } catch (error) {
     console.error(
-        "Erreur lors de l'initialisation :",
+        "Erreur lors du chargement des sorties :",
         error
     );
 
@@ -756,15 +684,20 @@ try {
 }
 
 /* =========================================================
-RECHERCHE ET DÉMARRAGE
+DÉMARRAGE
 ========================================================= */
 
 document.addEventListener("DOMContentLoaded", () => {
-const searchInput = $("release-search");
+console.log("Spotify Tracker : JavaScript chargé.");
 
 ```
+const searchInput = $("release-search");
+
 if (searchInput) {
-    searchInput.addEventListener("input", renderReleases);
+    searchInput.addEventListener(
+        "input",
+        renderReleases
+    );
 }
 
 initialize();
